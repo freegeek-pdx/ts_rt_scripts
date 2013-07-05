@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+'''Users functions to add comments etc. For use in shell scripts etc'''
+from __future__ import absolute_import, print_function #, unicode_literals
+import unittest
+import argparse
+import sys
+from request_tracker import RT, RT_URL, load_config 
+
+
+class MyTests(unittest.TestCase):
+    # pylint: disable=R0904, W0612, E1101
+    '''unit tests'''
+    def setUp(self):
+        self.config = load_config('rt.cfg')
+        rtconf = self.config['rt']
+        rt_user = rtconf['rt_user']
+        rt_password = rtconf['rt_password']
+        self.rt_queue = rtconf['rt_queue']
+        self.rqt = RT(RT_URL, rt_user, rt_password)
+        self.rqt.login()
+
+
+    def tearDown(self):
+        pass
+
+    def test_example(self):
+        pass
+
+def loadconfig():
+    '''load configuration file'''
+    config = load_config('rt.cfg')
+    rtconf = config['rt']
+    rt_user = rtconf['rt_user']
+    rt_password = rtconf['rt_password']
+    rt_queue = rtconf['rt_queue']
+    return rt_user, rt_password, rt_queue
+
+def read_options():
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-n", "--no-change",  help="Do not change the status of a ticket", action="store_true")
+    group.add_argument("-a", "--active",  help="Returns 0 if a ticket is a valid active ticket, 1 if the ticket exists but is not active and  66 if the ticket does not exist ", action="store_true")
+    group.add_argument("-g", "--get-status",  help='''Print the status of a ticket. Prints 'invalid'if ticket not found and returns 66.''' , action="store_true")
+    group.add_argument("-s", "--set-status",  help="Set the status of a ticket",                        choices=['new', 'open', 'stalled', 'pending', 'contact',                                    'resolved', 'rejected', 'deleted'])
+    parser.add_argument('message', metavar='TICKET MESSAGE',  nargs='+',
+                               help='The ticket number followed by a(n optional) message. Note the message is compulsory unless one of the -g/--get-status,  -s/--set-status or  or -a/--active options are used')
+
+    args = parser.parse_args()
+    
+    if args.no_change:
+        status = False
+    elif args.set_status:
+        status = args.set_status
+    else:
+        status = None
+    
+    action = None
+    if args.active:
+        action = 'check_active'
+    elif args.get_status:
+        action = 'get_status'
+    elif args.set_status:
+        action = 'set_status'
+
+    if not action and not len(args.message) > 1:
+        parser.error('No message supplied')
+    elif action is not 'set_status' and action is not None and  len(args.message) > 1:
+        parser.error('''You can't supply a message with that argument''')
+
+    ticket = args.message[0]
+    if  len(args.message) > 1:
+        message = ' '.join(args.message[1:])
+    else:
+        message = None
+
+    return action, status, ticket, message
+
+def setup_object(user, password):
+    #pylint: disable=E1101
+    rt_object = RT(RT_URL, user, password)
+    rt_object.login()
+    return rt_object
+
+def main():
+    action, status, ticket_number, message = read_options()
+    RT_USER, RT_PASSWORD, RT_QUEUE = loadconfig()
+    ticket = setup_object(RT_USER, RT_PASSWORD)
+    # if is valid ticket
+    if action is 'check_active':
+        sys.exit()
+    elif action is 'get_status':
+        sys.exit()
+    elif action is 'set_status':
+        pass
+    if message is not None:
+        if status is False:
+            pass
+        else:
+            pass
+
+if __name__ == "__main__":
+    unittest.main()
+    

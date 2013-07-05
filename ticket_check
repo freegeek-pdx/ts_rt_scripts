@@ -1,0 +1,199 @@
+#!/usr/bin/env python
+from __future__ import absolute_import, print_function, unicode_literals
+import unittest
+import argparse
+import re
+import datetime
+from request_tracker import RT, RT_URL, format_results, email_results, send_email, load_config, get_id_list
+
+class MyTests(unittest.TestCase):
+    # pylint: disable=R0904
+    '''Unit tests for extra functions'''
+    def setUp(self):
+        self.config = load_config('rt.cfg')
+        rtconf = self.config['rt']
+        rt_user = rtconf['rt_user']
+        rt_password = rtconf['rt_password']
+        self.rt_queue = rtconf['rt_queue']
+        mail = self.config['mail']
+        self.email = mail['email']
+        self.mailhost = mail['mail_host']
+        self.rqt = RT(RT_URL, rt_user, rt_password)
+        self.rqt.login()
+
+    def test_get_pending_list(self):
+        result = get_pending_list(self.rqt,1)
+        if len(result)>0:
+            has_results = True
+        else:
+            has_results = False
+        self.assertTrue(has_results)
+
+    def test_get_stalled_list(self):
+        result = get_stalled_list(self.rqt,1)
+        if len(result)>0:
+            has_results = True
+        else:
+            has_results = False
+        self.assertTrue(has_results)
+
+
+
+def loadconfig():
+    config = load_config('/etc/rt.cfg')
+    rtconf = config['rt']
+    mail = config['mail']
+    global RT_HOST, RT_USER, RT_PASSWORD, RT_QUEUE, RT_FROM, RT_TO, MAILHOST, tickets
+    tickets = config['tickets']
+    RT_HOST = 'todo.freegeek.org'
+    RT_USER = rtconf['rt_user']
+    RT_PASSWORD = rtconf['rt_password']
+    RT_QUEUE = rtconf['rt_queue']
+    RT_FROM = mail['rt_from']
+    RT_TO= mail['rt_to']
+    MAILHOST = mail['mail_host']
+
+def read_options():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--send-email", help="email output to support-staff list", action="store_true")
+    parser.add_argument("-t", "--test-mode", help="run in test mode (don't chage ticket status)", action="store_true")
+    args = parser.parse_args()
+    if args.send_email:
+        sendemail = True
+    else:
+        sendemail = False
+    if args.test_mode:
+        testmode = True
+    else:
+        testmode = False
+    return sendemail, testmode 
+
+def setup_object():
+    rt_object = RT(RT_URL, RT_USER, RT_PASSWORD)
+    rt_object.login()
+    return rt_object
+
+def get_pending_list(rtobject, days):
+    pending_list = rtobject.last_updated_by_status(RT_QUEUE, 'pending', days)
+    return pending_list
+
+def get_stalled_list(rtobject, days):
+    stalled_list = rtobject.last_updated_by_status(RT_QUEUE, 'stalled', days)
+    return stalled_list
+
+def get_new_list(rtobject, days):
+    new_list = rtobject.last_updated_by_status(RT_QUEUE, 'new', days)
+    return new_list
+
+def get_open_list(rtobject, days):
+    open_list = rtobject.last_updated_by_status(RT_QUEUE, 'open', days)
+    return open_list
+
+def get_line3_list(rtobject, days):
+    line3_list = rtobject.last_updated_by_field(RT_QUEUE, 'active', 'Support Level', 'Line 3', days)
+    return line3_list 
+
+def get_creation_date_list(rtobject, days):
+    created_list = rtobject.get_created_before(RT_QUEUE, 'live', days)
+    return created_list 
+# MAIN
+
+if __name__ == "__main__":
+    loadconfig()
+    SENDMAIL, TESTMODE  = read_options()
+    
+#    unittest.main()
+
+    r = setup_object()  
+    pending_list = get_pending_list(r,14)
+    for ticket in get_id_list(pending_list):
+        if TESTMODE:
+            print('set to contact: ' + ticket)
+        else:
+            r.set_status(ticket, 'contact')
+    
+    stalled_list = get_stalled_list(r,10)
+    stalled_results_dirty=format_results(stalled_list, 'id', 'Subject')
+    # list of tickets to ignore as regex
+    st = tickets['stalled']
+    # list (construction)  of compiled "regex" (i.e. ticket numbers)
+    ignore = [ re.compile('.*' + t) for t in  st.split(',')]
+    # list construction: add to stalled results  unless there is a match to ignore tickets
+    stalled_results = [s for s in stalled_results_dirty if not any(r.match(s) for r in ignore)]
+    if len(stalled_results) > 0:
+        if SENDMAIL:
+            email_results(MAILHOST, RT_FROM, RT_TO, 'Tickets stalled for more than 14 days', stalled_results)
+        else:
+            print('Tickets stalled for more than 14 days')
+            for line  in  stalled_results:
+                print(line)
+
+    new_list = get_new_list(r,3)
+    new_results_dirty=format_results(new_list, 'id', 'Subject')
+    # list of tickets to ignore as regex
+    nt = tickets['new']
+    # list (construction)  of compiled "regex" (i.e. ticket numbers)
+    ignore = [ re.compile('.*' + t) for t in  nt.split(',')]
+    # list construction: add to stalled results  unless there is a match to ignore tickets
+    new_results = [s for s in new_results_dirty if not any(r.match(s) for r in ignore)]
+    if len(new_results) > 0:
+        if SENDMAIL:
+            email_results(MAILHOST, RT_FROM, RT_TO, 'New tickets untouched in 3 or more  days', new_results)
+        else:
+            print('New tickets untouched in 3 or more days')
+            for line  in  new_results:
+                print(line)
+    
+    open_list = get_open_list(r,2)
+    open_results=format_results(open_list, 'id', 'Subject')
+    if len(open_results) > 0:
+        if SENDMAIL:
+            email_results(MAILHOST, RT_FROM, RT_TO, 'Open tickets untouched for 2 or more  days', open_results)
+        else:
+            print('Open tickets untouched for 2 or more  days')
+            for line  in  open_results:
+                print(line)
+
+    line3_list = get_line3_list(r,2)
+    line3_results=format_results(line3_list, 'id', 'Subject')
+    if len(line3_results) > 0:
+        if SENDMAIL:
+            email_results(MAILHOST, RT_FROM, RT_TO, 'Line 3 tickets untouched for 2 or more  days', line3_results)
+        else:
+            print('Line 3 tickets untouched for 2 or more  days')
+            for line  in  line3_results:
+                print(line)
+
+    creation_date_list = get_creation_date_list(r,3)
+    creation_date_results_dirty=format_results(creation_date_list, 'id', 
+            'Created', 'Subject')    
+    # list of tickets to ignore as regex
+    ct = tickets['create']
+    # list (construction)  of compiled "regex" (i.e. ticket numbers)
+    ignore = [ re.compile('.*' + t) for t in  ct.split(',')]
+    # list construction: add to results  unless there is a match to ignore tickets
+    creation_date_results = [s for s in creation_date_results_dirty if not any(r.match(s) for r in ignore)]
+    # get list of dates
+    creation_dates =  []
+    for line in creation_date_results:
+        words = line.split()
+        date_string = (' '.join(words[2:6]))
+        # datetime.strptime(date_string, format)
+        dt = datetime.datetime.strptime(date_string, "%b %d %H:%M:%S %Y")
+        date = datetime.datetime.date(dt)
+        creation_dates.append(date)
+    # TODO use time delta to get list of completion 
+    # incorporate in loop above?
+    # get longest completion time
+    today = datetime.date.today()
+    print(creation_dates)
+
+    if len(creation_date_results) > 0:
+        if SENDMAIL:
+            email_results(MAILHOST, RT_FROM, RT_TO, 'Tickets not completed in 3 days', creation_date_results)
+        else:
+            print('Tickets not completed in 3 days')
+            for line  in  creation_date_results:
+                print(line)
+
+
