@@ -174,6 +174,8 @@ if __name__ == "__main__":
     # list construction: add to results  unless there is a match to ignore tickets
     creation_date_results = [s for s in creation_date_results_dirty if not any(r.match(s) for r in ignore)]
     # get list of dates
+    today = datetime.date.today()
+    maxtime = 0
     creation_dates =  []
     for line in creation_date_results:
         words = line.split()
@@ -182,16 +184,20 @@ if __name__ == "__main__":
         dt = datetime.datetime.strptime(date_string, "%b %d %H:%M:%S %Y")
         date = datetime.datetime.date(dt)
         creation_dates.append(date)
+        timedelta = today - date
+        comptime = int(str(timedelta)[0])
+        if comptime > maxtime:
+            maxtime = comptime
     # TODO use time delta to get list of completion 
     # incorporate in loop above?
     # get longest completion time
-    today = datetime.date.today()
-    print(creation_dates)
+    # print(creation_dates)
 
     if len(creation_date_results) > 0:
         if SENDMAIL:
-            email_results(MAILHOST, RT_FROM, RT_TO, 'Tickets not completed in 3 days', creation_date_results)
+            email_results(MAILHOST, RT_FROM, RT_TO, 'Tickets not completed in 3 days', 'Maximum completion time: ' + str(maxtime) + 'days' + creation_date_results)
         else:
+            print('Maximum completion time ' + str(maxtime) + ' days')
             print('Tickets not completed in 3 days')
             for line  in  creation_date_results:
                 print(line)
