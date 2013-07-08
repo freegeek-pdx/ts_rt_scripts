@@ -185,13 +185,8 @@ if __name__ == "__main__":
         date = datetime.datetime.date(dt)
         creation_dates.append(date)
         timedelta = today - date
-        comptime = int(str(timedelta)[0])
-        if comptime > maxtime:
-            maxtime = comptime
-    # TODO use time delta to get list of completion 
-    # incorporate in loop above?
-    # get longest completion time
-    # print(creation_dates)
+        if timedelta.days > maxtime:
+            maxtime = timedelta.days
 
     if len(creation_date_results) > 0:
         if SENDMAIL:
