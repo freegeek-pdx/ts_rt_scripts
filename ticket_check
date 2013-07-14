@@ -190,11 +190,11 @@ if __name__ == "__main__":
 
     if len(creation_date_results) > 0:
         if SENDMAIL:
-            email_results(MAILHOST, RT_FROM, RT_TO, 'Tickets not completed in 3 days', 'Maximum completion time: ' + str(maxtime) + 'days' + creation_date_results)
+            maxcomp = 'Maximum completion time: ' + str(maxtime) + ' days' + '\n' + '\n'.join(creation_date_results)
+            send_email(MAILHOST, RT_FROM, RT_TO, 'Tickets not completed in 3 days', maxcomp)
         else:
             print('Maximum completion time ' + str(maxtime) + ' days')
             print('Tickets not completed in 3 days')
             for line  in  creation_date_results:
                 print(line)
-
 
