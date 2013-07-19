@@ -5,7 +5,7 @@ from fabric.contrib.console import confirm
 # DO WE NEED THIS?
 env.hosts = ['bruno']
 
-code_dir = '/home/paulm/code/rt_scripts'
+code_dir = '/home/paulm/code/rt_scripts/'
 repository = 'rtscripts'
 
 def git_status():
