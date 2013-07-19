@@ -21,8 +21,7 @@ def git_push(repo=repository):
             abort('Aborting...unable to push to repository: ' + repo)
 
 def copy_file_to_server(destfile='ticket_check'):
-    with cd(code_dir):
-        put(code_dir + destfile, '/usr/local/bin',  use_sudo=True, mirror_local_mode=True)
+    put(code_dir + destfile, '/usr/local/bin',  use_sudo=True, mirror_local_mode=True)
 
 
     # TODO scp file to server
