@@ -30,6 +30,6 @@ def copy_file_to_server(destfile='ticket_check'):
 def deploy():
     git_status()
     git_push()
-    copy_file_to_server('foo')
+    copy_file_to_server()
 
 
