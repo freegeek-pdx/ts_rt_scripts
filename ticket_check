@@ -23,7 +23,7 @@ class MyTests(unittest.TestCase):
 
     def test_get_pending_list(self):
         result = get_pending_list(self.rqt,1)
-        if len(result)>0:
+        if result:
             has_results = True
         else:
             has_results = False
@@ -31,7 +31,7 @@ class MyTests(unittest.TestCase):
 
     def test_get_stalled_list(self):
         result = get_stalled_list(self.rqt,1)
-        if len(result)>0:
+        if result:
             has_results = True
         else:
             has_results = False
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     ignore = [ re.compile('.*' + t) for t in  st.split(',')]
     # list construction: add to stalled results  unless there is a match to ignore tickets
     stalled_results = [s for s in stalled_results_dirty if not any(r.match(s) for r in ignore)]
-    if len(stalled_results) > 0:
+    if stalled_results:
         if SENDMAIL:
             email_results(MAILHOST, RT_FROM, RT_TO, 'Tickets stalled for more than 14 days', stalled_results)
         else:
@@ -136,7 +136,7 @@ if __name__ == "__main__":
     ignore = [ re.compile('.*' + t) for t in  nt.split(',')]
     # list construction: add to stalled results  unless there is a match to ignore tickets
     new_results = [s for s in new_results_dirty if not any(r.match(s) for r in ignore)]
-    if len(new_results) > 0:
+    if new_results:
         if SENDMAIL:
             email_results(MAILHOST, RT_FROM, RT_TO, 'New tickets untouched in 3 or more  days', new_results)
         else:
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     
     open_list = get_open_list(r,2)
     open_results=format_results(open_list, 'id', 'Subject')
-    if len(open_results) > 0:
+    if open_results:
         if SENDMAIL:
             email_results(MAILHOST, RT_FROM, RT_TO, 'Open tickets untouched for 2 or more  days', open_results)
         else:
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     line3_list = get_line3_list(r,2)
     line3_results=format_results(line3_list, 'id', 'Subject')
-    if len(line3_results) > 0:
+    if line3_results:
         if SENDMAIL:
             email_results(MAILHOST, RT_FROM, RT_TO, 'Line 3 tickets untouched for 2 or more  days', line3_results)
         else:
@@ -188,7 +188,7 @@ if __name__ == "__main__":
         if timedelta.days > maxtime:
             maxtime = timedelta.days
 
-    if len(creation_date_results) > 0:
+    if creation_date_results:
         if SENDMAIL:
             maxcomp = 'Maximum completion time: ' + str(maxtime) + ' days' + '\n' + '\n'.join(creation_date_results)
             send_email(MAILHOST, RT_FROM, RT_TO, 'Tickets not completed in 3 days', maxcomp)
