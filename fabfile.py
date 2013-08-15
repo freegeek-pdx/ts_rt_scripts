@@ -11,7 +11,7 @@ repository = 'rtscripts'
 def git_status():
     with cd(code_dir):
         result = local("git status -z", capture=True)
-        if len(result) != 0:
+        if result:
             abort('Aborting...uncommitted changes or files. Please commit any changes to git')
 
 def git_push(repo=repository):
