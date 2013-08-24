@@ -42,18 +42,16 @@ def read_options():
     group.add_argument("-a", "--active",  help="Returns 0 if a ticket is a valid active ticket, 1 if the ticket exists but is not active and  66 if the ticket does not exist ", action="store_true")
     group.add_argument("-g", "--get-status",  help='''Print the status of a ticket. Prints 'invalid'if ticket not found and returns 66.''' , action="store_true")
     group.add_argument("-s", "--set-status",  help="Set the status of a ticket",                        choices=['new', 'open', 'stalled', 'pending', 'contact',                                    'resolved', 'rejected', 'deleted'])
+    parser.add_argument("-f", "--file", help="Add the contents of a file as a ticket comment (not an atachment)")
     parser.add_argument('message', metavar='TICKET MESSAGE',  nargs='+',
                                help='The ticket number followed by a(n optional) message. Note the message is compulsory unless one of the -g/--get-status,  -s/--set-status or  or -a/--active options are used')
-
     args = parser.parse_args()
-    
     if args.no_change:
-        status = False
+        set_status = False
     elif args.set_status:
-        status = args.set_status
+        set_status = args.set_status
     else:
-        status = None
-    
+        set_status = None
     action = None
     if args.active:
         action = 'check_active'
@@ -61,19 +59,21 @@ def read_options():
         action = 'get_status'
     elif args.set_status:
         action = 'set_status'
+    elif args.file:
+        action = args.file
 
     if not action and not len(args.message) > 1:
         parser.error('No message supplied')
-    elif action is not 'set_status' and action is not None and  len(args.message) > 1:
-        parser.error('''You can't supply a message with that argument''')
-
+    # dropping the following, as we can't determine the action with file
+    # any message supplied will just be ignored
+    #elif action is not 'set_status' and action is not None and  len(args.message) > 1:
+    #    parser.error('''You can't supply a message with that argument''')
     ticket = args.message[0]
     if  len(args.message) > 1:
         message = ' '.join(args.message[1:])
     else:
         message = None
-
-    return action, status, ticket, message
+    return action, set_status, ticket, message
 
 def setup_object(user, password):
     #pylint: disable=E1101
@@ -82,9 +82,9 @@ def setup_object(user, password):
     return rt_object
 
 def main():
-    action, status, ticket_number, message = read_options()
+    action, set_status, ticket_number, message = read_options()
     RT_USER, RT_PASSWORD, RT_QUEUE = loadconfig()
-    ticket = setup_object(RT_USER, RT_PASSWORD)
+    rt = setup_object(RT_USER, RT_PASSWORD)
     # if is valid ticket
     if action is 'check_active':
         sys.exit()
@@ -92,12 +92,17 @@ def main():
         sys.exit()
     elif action is 'set_status':
         pass
+    else: 
+        with open(action, 'rU') as f:
+            message = f.read()
+
     if message is not None:
-        if status is False:
-            pass
+        if set_status is False:
+           result = rt.add_comment_nosc(ticket_number, message)
         else:
-            pass
+           result = rt.add_comment(ticket_number, message)
+
 
 if __name__ == "__main__":
-    unittest.main()
-    
+    # unittest.main()
+    main()    
