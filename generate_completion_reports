@@ -1,0 +1,106 @@
+#!/usr/bin/env python
+from __future__ import absolute_import, print_function, unicode_literals
+
+'''
+def date_check(ticket):
+    get history
+    get creation date
+    get  contact -> pending -> resolved date
+    return difference
+        timedelta fdate - cdate
+
+average(list):
+    float(sum(list)) / len(list)
+
+adjusted_average(list):
+    (float(sum(list)) - max(list) / / len(list))   
+
+generate_list(week_start)
+    list=[]
+    get list of tickets in contact:
+        check to see if we already have a result for for it
+        completion_time = date_check(ticket)
+        append completion time to list
+        store_ticket
+
+    repeat for tickets in pending
+
+    repeat for ticket resolved in last week
+        check to see if we already have a result for for it
+            if so remove from db
+        else
+            completion_time = date_check(ticket)
+            append completion time to list
+
+calculate_weekly_averages(list):
+    average = average(list)
+    adjusted_average=adjusted_average(list)
+    return average, adjusted_average
+
+store_average(week_date, (weekly_average, weekley, adjusted_average))
+    add week_date:(average, adjusted_average) to second db
+    add week_date to front of list of all weeks stored
+        (so we can create a lazy index and just get the first four elements)
+
+get_last_month(db): 
+    new_list = first 4 elements of index list
+    return new_list
+
+calculate_monthly_averages(list):
+    average = average([for item in list get item:value[1]])
+    adjusted_average =average([for item in list get item(value[2]])
+    return  return average, adjusted_average
+
+calculate_week():
+    return today - 7
+
+generate_monthly_email(average, adjusted_average):
+    generate email_body
+    return email_body
+
+send email(address, body):
+    send email
+
+get_week(week,weeklydb):
+    week_list = generate_list(tweek)
+    weekly_average, weekly_adjusted_average  = calculate_weekly_averages(week_list)
+    return weekly_average, weekly_adjusted_average
+
+get_previous_week(monthlydb):
+    previous_week = 1st element of index list
+    averages = monthlydb.get(previous_week)
+    return averages[0], averages[1]
+
+do_monthly(weeklydb, monthydb):
+    last_week = calculate_week
+    week_list = get_last_month(db)
+    if  last_week != week_list[0]:
+        last_week_list = generate_list(last_week)
+        weekly_average, weekly_adjusted_average  = calculate_weekly_averages(last_week_list)
+        store(last_week,(weekly_average, weekly_adjusted_average)
+        week_list = get_last_month(db)
+    monthy_average, monthly_adjusted_average  = calculate_monthly_averages(iweek_list)
+    return monthy_average, monthly_adjusted_average 
+
+main():
+    weeklydb = minidb.MiniDB('weeklydbfile')
+    monthlydb = minidb.MiniDB('monthlydbfile')
+    if monthly:
+        monthy_average, monthly_adjusted_average = do_monthly((weeklydb, monthydb)
+        msg = generate_monthly_email(monthy_average, monthly_adjusted_average)
+        send_email(address, msg)
+    elif weekly:
+        this_week = calculate_week
+        weekly_average, weekly_adjusted_average = get_week(this_week, weeklydb)
+        prev_weekly_average, prev_weekly_adjusted_average = get_previous_week(monthlydb)
+         store(this_week,(weekly_average, weekly_adjusted_average)
+        msg = gen_weekly_email((weekly_average, weekly_adjusted_average),(prev_weekly_average, prev_weekly_adjusted_average))
+         send_email(address, msg)
+    weeklydb.dump()
+    monthlydb.dump()
+'''
+
+
+
+if __name__ == "__main__":
+
