@@ -44,11 +44,6 @@ class MyTests(unittest.TestCase):
         result = calculate_two_week(date)
         self.assertEquals(result, expected)
 
-    def test_get_last_4_weeks(self):
-        date = datetime.date(2013, 11, 01)
-        expected = [datetime.date(2013, 10, 25), datetime.date(2013, 10, 18), datetime.date(2013, 10, 11), datetime.date(2013, 10, 4)]
-        result = get_last_4_weeks(date)
-        self.assertEquals(result, expected)
 
     def test_calculate_averages(self):
         (result1, result2) = calculate_averages([1, 2, 3, 4])
