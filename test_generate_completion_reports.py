@@ -68,12 +68,7 @@ class MyTests(unittest.TestCase):
 
     def test_get_calculated_averages_fails(self):
         date = datetime.date(2013, 11, 11)
-        try:
-            (result1, result2) = get_calculated_averages(date, self.db)
-            raised_exception = False
-        except LocalError: 
-            raised_exception = True
-        self.assertTrue(raised_exception)
+        self.assertRaises(LocalError, get_calculated_averages, date, self.db)
 
 
 if __name__ == "__main__":
