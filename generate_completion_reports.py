@@ -4,31 +4,40 @@ import datetime
 import  jsondb
 
 '''
-def date_check(ticket):
+def ticket_check((start, end)ticket):
     get history
     get creation date
     get  contact -> pending -> resolved date
-    return difference
+    return date_of_change, difference
         timedelta finished_date - creation_date
+    (repeat for any status change if new status = open)
 
-generate_list(week_start)
-    list=[]
-    get list of tickets in contact:
-        check to see if we already have a result for for it
-        completion_time = date_check(ticket)
-        append completion time to list
-        store_ticket
+gen_list((start, end))
+    completion_list=[]
+    #get list of tickets in contact:
+    ticket_list = get_ticket_list(contact)
+    completion_list.extend(check_tickets((start, end), ticket_list))
+    #repeat for tickets in pending
+    ticket_list = get_ticket_list(pending)
+    completion_list.extend(check_tickets((start, end), ticket_list))
+    #repeat for ticket resolved in timeperiod
+    ticket_list = get_resolved_ticket_list(start, end)
+    completion_list.extend(check_tickets((start, end), ticket_list))    
+    return completion_list
 
-    repeat for tickets in pending
+def check_tickets((start, end), ticket_list):
+    results = []
+    for ticket in ticket_list:
+        date_of_change, difference = ticket_check((start, end)ticket)
+        # if status change was within time period add to results
+        if check_date((start, end), date_of_change):
+            #append completion time to list
+            results.append(completion_time)
+    return results
 
-    repeat for ticket resolved in last week
-        check to see if we already have a result for for it
-            if so remove from db
-        else
-            completion_time = date_check(ticket)
-            append completion time to list
-
-
+def get_resolved_ticket_list(start, end):
+    get a list of resolved tickets where start <= last_updated <= end
+    return list
 
 generate_monthly_email(average, adjusted_average):
     generate email_body
@@ -37,20 +46,18 @@ generate_monthly_email(average, adjusted_average):
 send email(address, body):
     send email
 
-get_week(week,weeklydb):
-    week_list = generate_list(week)
-    weekly_average, weekly_adjusted_average  = calculate_weekly_averages(week_list)
-    return weekly_average, weekly_adjusted_average
+gen_data((start, end)):
+    glist = gen_list((start,end)) 
+    average, adjusted_average  = calculate_averages(glist)
+    return average, adjusted_average
 
-get_previous_week(monthlydb):
-    previous_week = 1st element of index list
-    averages = monthlydb.get(previous_week)
-    return averages[0], averages[1]
+get_previous_week(date, weeklydb):
+    previous_week = days_ago(date, 14)
+    average, adj_average = get_calculated_averages(previous_week, weeklydb)
+    return average, adj_average
+
 
 do_monthly(date, weeklydb, monthydb):
-    last_week = calculate_week
-    week_list = get_last_month(date)
-    if  last_week != week_list[0]:
         last_week_list = generate_list(last_week)
         weekly_average, weekly_adjusted_average  = calculate_weekly_averages(last_week_list)
         store(last_week,(weekly_average, weekly_adjusted_average)
@@ -60,16 +67,15 @@ do_monthly(date, weeklydb, monthydb):
 
 def main():
     db = jsondb.JsonDB('dbfile')
-    today = datetime.date.today()
     if monthly:
-        monthy_average, monthly_adjusted_average = do_monthly((weeklydb, monthydb)
+        monthy_average, monthly_adjusted_average = gen_data(start_of_month,end_of_month) 
         msg = generate_monthly_email(monthy_average, monthly_adjusted_average)
         send_email(address, msg)
     elif weekly:
-        this_week = calculate_week(today)
-        weekly_average, weekly_adjusted_average = get_week(this_week, weeklydb)
-        prev_weekly_average, prev_weekly_adjusted_average = get_previous_week(monthlydb)
-         
+        start =
+        end = days_ago(start, 7)
+        weekly_average, weekly_adjusted_average = gen_data(start, end)
+        prev_weekly_average, prev_weekly_adjusted_average = get_previous_week(start, weeklydb)
          store(this_week,(weekly_average, weekly_adjusted_average)
         msg = gen_weekly_email((weekly_average, weekly_adjusted_average),(prev_weekly_average, prev_weekly_adjusted_average))
          send_email(address, msg)
@@ -90,18 +96,17 @@ def adjusted_avg_list(list):
     return  (float(sum(list)) - max(list)) / (len(list) - 1)   
 
 
-def calculate_week(date):
-    '''returns date for previous week'''
-    return days_ago(date, 7)
-
-def calculate_two_week(date):
-    '''returns date for previous week + 1'''
-    return days_ago(date, 14)
-
 def days_ago(date, days):
     '''returns date n days ago from date,
     date is datetime.date object, days is int'''
     return date - datetime.timedelta(days)
+
+def check_date((start, end), date):
+    '''checks to see if date is between start and end and returns boolean'''
+    if start <= date <= end:
+        return True
+    else:
+        return False
 
 def calculate_averages(wlist):
     '''return averages for list'''
@@ -112,6 +117,10 @@ def calculate_averages(wlist):
 def get_calculated_averages(date, db):
     '''for a given date return average, adjusted_average from db)'''
     averages = db.get(str(date))
-    return averages[0], averages[1]
+    if not averages:
+        raise LocalError('incorrect date, could not get averages')
+    else:
+        return averages[0], averages[1]
+
 if __name__ == "__main__":
     pass
