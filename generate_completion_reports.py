@@ -71,8 +71,6 @@ def main():
         prev_weekly_average, prev_weekly_adjusted_average = get_previous_week(monthlydb)
          
          store(this_week,(weekly_average, weekly_adjusted_average)
-        week_list = get_last_4_weeks(db)
-        monthy_average, monthly_adjusted_average  = calculate_monthly_averages(iweek_list)
         msg = gen_weekly_email((weekly_average, weekly_adjusted_average),(prev_weekly_average, prev_weekly_adjusted_average))
          send_email(address, msg)
     weeklydb.dump()
@@ -104,12 +102,6 @@ def days_ago(date, days):
     '''returns date n days ago from date,
     date is datetime.date object, days is int'''
     return date - datetime.timedelta(days)
-
-def get_last_4_weeks(date):
-    '''returns a list of the last 4 weeks dates using list comprehension
-    range(7, 31, 7) == 7, 14, 21, 28'''
-    return [days_ago(date, days) for days in range(7, 31, 7)]  
-
 
 def calculate_averages(wlist):
     '''return averages for list'''
