@@ -1,0 +1,13 @@
+Depends on the following python modules
+External:
+python-rt, which depends on python-requests
+
+nose (for testing)
+
+Other:
+
+jsondb
+python-rtwrapper
+
+There will be forks in this repository collection for both of these matching these scripts. Eventually python-rtwrapper  might want to  get added into the upstream.
+
