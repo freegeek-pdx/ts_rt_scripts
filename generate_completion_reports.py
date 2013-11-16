@@ -2,33 +2,59 @@
 from __future__ import absolute_import, print_function, unicode_literals
 import datetime
 import  jsondb
+from request_tracker import RT, RT_URL, format_results, email_results, send_email, load_config, get_id_list
+
+def loadconfig():
+    '''load config into global variables to make setting up rt object easy'''
+    config = load_config('/etc/rt.cfg')
+    rtconf = config['rt']
+    mail = config['mail']
+    global RT_HOST, RT_USER, RT_PASSWORD, RT_QUEUE, RT_FROM, RT_TO, MAILHOST, tickets
+    tickets = config['tickets']
+    RT_HOST = 'todo.freegeek.org'
+    RT_USER = rtconf['rt_user']
+    RT_PASSWORD = rtconf['rt_password']
+    RT_QUEUE = rtconf['rt_queue']
+    RT_FROM = mail['rt_from']
+    RT_TO= mail['rt_to']
+    MAILHOST = mail['mail_host']
+
+
+def setup_rtobject():
+    '''set up rt object'''
+    rtobject = RT(RT_URL, RT_USER, RT_PASSWORD)
+    rtobject.login()
+    return rtobject
 
 '''
-def ticket_check((start, end)ticket):
-    get history
-    get creation date
+def ticket_check(rt, ticket, (start, end)):
+    # get history (python-rt method), returned as list
+    history = rt.get_history(ticket)
+    # get creation date python-requestracker method
+    creation_date = get_creation_date(ticket)
     get  contact -> pending -> resolved date
     return date_of_change, difference
         timedelta finished_date - creation_date
     (repeat for any status change if new status = open)
 
 gen_list((start, end))
+    rtobject = setup_rtobject()  
     completion_list=[]
     #get list of tickets in contact:
     ticket_list = get_ticket_list(contact)
-    completion_list.extend(check_tickets((start, end), ticket_list))
+    completion_list.extend(check_tickets(rtobject, ticket_list, (start, end)))
     #repeat for tickets in pending
     ticket_list = get_ticket_list(pending)
-    completion_list.extend(check_tickets((start, end), ticket_list))
+    completion_list.extend(check_tickets(rtobject, ticket_list, (start, end)))
     #repeat for ticket resolved in timeperiod
     ticket_list = get_resolved_ticket_list(start, end)
-    completion_list.extend(check_tickets((start, end), ticket_list))    
+    completion_list.extend(check_tickets(rtobject, ticket_list, (start, end)))   
     return completion_list
 
-def check_tickets((start, end), ticket_list):
+def check_tickets(rtobject, ticket_list, (start, end)):
     results = []
     for ticket in ticket_list:
-        date_of_change, difference = ticket_check((start, end)ticket)
+        date_of_change, difference = ticket_check(rtobject, ticket, (start, end))
         # if status change was within time period add to results
         if check_date((start, end), date_of_change):
             #append completion time to list
@@ -66,6 +92,7 @@ do_monthly(date, weeklydb, monthydb):
         return monthy_average, monthly_adjusted_average 
 
 def main():
+    loadconfig()
     db = jsondb.JsonDB('dbfile')
     if monthly:
         monthy_average, monthly_adjusted_average = gen_data(start_of_month,end_of_month) 
@@ -121,6 +148,12 @@ def get_calculated_averages(date, db):
         raise LocalError('incorrect date, could not get averages')
     else:
         return averages[0], averages[1]
+
+def get_creation_date(rtobject, ticket):
+    '''returns creation date as datetime date object'''
+    ctime = datetime.datetime.strptime(rtobject.get_creation_date(ticket), '%c')
+    return ctime.date()
+
 
 if __name__ == "__main__":
     pass
