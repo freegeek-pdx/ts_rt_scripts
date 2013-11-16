@@ -12,7 +12,7 @@ class MyTests(unittest.TestCase):
         self.db.set('2013-10-18', (2.5, 2))
         self.db.set('2013-10-04', (2.5, 2))
         loadconfig()
-        self.rt = setup_object()
+        self.rt = setup_rtobject()
         self.ticket = '34716'
 
     def tearDown(self):
