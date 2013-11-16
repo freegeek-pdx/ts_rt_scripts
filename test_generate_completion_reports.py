@@ -11,9 +11,13 @@ class MyTests(unittest.TestCase):
         self.db.set('2013-10-25', (2.5, 2))
         self.db.set('2013-10-18', (2.5, 2))
         self.db.set('2013-10-04', (2.5, 2))
+        loadconfig()
+        self.rt = setup_object()
+        self.ticket = '34716'
 
     def tearDown(self):
-        os.remove('null')        
+        os.remove('null')     
+        self.rt.logout()
 
     def test_example(self):
         pass
@@ -70,6 +74,10 @@ class MyTests(unittest.TestCase):
         date = datetime.date(2013, 11, 11)
         self.assertRaises(LocalError, get_calculated_averages, date, self.db)
 
+    def test_get_creation_date(self):
+        fdate =  datetime.datetime.strptime("Thu Mar 28 15:30:26 2013", "%c" )
+        expected_date = fdate.date()
+        result = get_creation_date(self.rt, self.ticket)
 
 if __name__ == "__main__":
     unittest.main()
