@@ -26,6 +26,9 @@ def setup_rtobject():
     rtobject.login()
     return rtobject
 
+def tellme():
+    print('here')
+
 '''
 def ticket_check(rt, ticket, (start, end)):
     # get history (python-rt method), returned as list
@@ -154,6 +157,10 @@ def get_creation_date(rtobject, ticket):
     ctime = datetime.datetime.strptime(rtobject.get_creation_date(ticket), '%c')
     return ctime.date()
 
+def get_history(rtobject, ticket):
+    '''returns ticket history as list'''
+    history = rtobject.get_history(ticket)
+    return history
 
 if __name__ == "__main__":
     pass
