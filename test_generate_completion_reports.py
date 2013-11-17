@@ -13,7 +13,7 @@ class MyTests(unittest.TestCase):
         self.db.set('2013-10-04', (2.5, 2))
         loadconfig()
         self.rt = setup_rtobject()
-        self.ticket = '34716'
+        self.ticket = '38576'
 
     def tearDown(self):
         os.remove('null')     
@@ -75,9 +75,17 @@ class MyTests(unittest.TestCase):
         self.assertRaises(LocalError, get_calculated_averages, date, self.db)
 
     def test_get_creation_date(self):
-        fdate =  datetime.datetime.strptime("Thu Mar 28 15:30:26 2013", "%c" )
+        fdate =  datetime.datetime.strptime("Sat Nov 16 17:55:11 2013", "%c" )
         expected_date = fdate.date()
         result = get_creation_date(self.rt, self.ticket)
+        self.assertEquals(result, expected_date)
+
+    def test_get_history(self):
+        history = get_history(self.rt, self.ticket)
+        for item in history:
+            print item
+        length = len(history)
+        self.assertEquals(4, length)
 
 if __name__ == "__main__":
     unittest.main()
