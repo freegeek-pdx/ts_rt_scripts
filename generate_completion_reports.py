@@ -207,17 +207,14 @@ def get_ticket_list(rtobject, status, (start, end)):
 
 
 def generate_completion_list(rtobject,(start, end)):
-    '''generate a list of how long it took to complete tickets''' 
+    '''generate a list of how long it took to complete tickets, doesn't
+    check tickets for validity, use check tickets for this''' 
     # not unit tested as covered by other tests
     completed=[]
     status_list = ['contact', 'pending', 'resolved']
-    # get completion times of appropriate tickets
-    # Note we can assume any ticket that hasn't been updated since
-    # the start date should not be counted, but we can't assume it
-    # should be.
     for status in status_list:
         ticket_list = get_ticket_list(rtobject, status, (start, end))
-        completed.extend(check_tickets(rtobject, ticket_list, (start, end)))
+        completed.extend(ticket_list)
     return completed
 
 
@@ -225,8 +222,11 @@ def gen_data(rtobject, (start, end)):
     '''given a date range return the average and adjusted average
     completion times for tickets'''
     # not unit tested as covered by other tests
-    glist = generate_completion_list(rtobject, (start,end)) 
-    average, adjusted_average  = calculate_averages(glist)
+    ticket_list = generate_completion_list(rtobject, (start,end))
+    # we check tickets here so we can avoid hitting the API
+    #  via generate_completion_list (& get_ticket_list) multiple times
+    valid_tickets = check_tickets(rtobject, ticket_list, (start, end))
+    average, adjusted_average  = calculate_averages(valid_tickets)
     return average, adjusted_average
 
 
