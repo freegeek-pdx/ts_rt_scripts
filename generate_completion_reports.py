@@ -38,33 +38,42 @@ def setup_rtobject():
 def main():
     loadconfig()
     rtobject = setup_rtobject()  
-    now = datetime.date.today()
+    date = datetime.date.today()
 
     if monthly:
         db = jsondb.JsonDB(MONTHLYDB)
-        start, end = get_last_month(now)
-        monthy_average, monthly_adjusted_average = gen_data(start, end) 
-        db.set(start, (monthy_average, monthly_adjusted_average))
+        try:
+            daterange = daterange
+        except NameError:
+            daterange = 3
+        data = []
+        for i in range(daterange):
+            month, year = get_corrected_month(date, i)
+            start, end = get__monthrange(month, year)
+            results = date_averages(db, (start, end))
+            data.append(results)
         db.dump()
-        data = [(str(start), (monthy_average, monthly_adjusted_average))]
-        pstart1, pstart2 = get_previous_months(now)
-        data += [ (pstart1, db.get(pstart1)), (pstart2, db.get(pstart2)) ]
         msg = generate_email_body(data,'month')
-        for adress in EMAIL:
+        for address in EMAIL:
             send_email(address, msg)
     elif weekly:
         db = jsondb.JsonDB(WEEKLYDB)
+        try:
+            daterange = daterange
+        except NameError:
+            daterange = 3
+        data = []
+        for i in range(daterange):
+            start, end = get_corrected_week(date, i) # TODO
+            results = date_averages(db, (start, end))
+            data.append(results)
+        db.dump()
+        msg = generate_email_body(data,'week')
+        for address in EMAIL:
+            send_email(address, msg)
+
         end = get_week_end(now) #WRITE THIS
         start = days_ago(end, 7)
-        weekly_average, weekly_adjusted_average = gen_data(start, end)
-        db.set(start, (weekly_average, weekly_adjusted_average)
-        db.dump()
-        data = [(str(start), (weeky_average, weekly_adjusted_average))]
-        pstart1, pstart2 = get_previous_weeks(now) #WRITE THIS
-        data += [ (pstart1, db.get(pstart1)), (pstart2, db.get(pstart2)) ]
-        msg = generate_email_body(data,'week')
-        for adress in EMAIL:
-            send_email(address, msg)
 
 
 '''
@@ -73,11 +82,11 @@ class LocalError(Exception):
 
 def avg_list(list):
     '''returns the average of a list of numbers'''
-    return float(sum(list)) / len(list)
+    return round(float(sum(list)) / len(list), 1)
 
 def adjusted_avg_list(list):
     '''returns the average of a list of numbers ignoring the highest number'''
-    return  (float(sum(list)) - max(list)) / (len(list) - 1)   
+    return  round((float(sum(list)) - max(list)) / (len(list) - 1), 1)  
 
 
 def days_ago(date, days):
@@ -92,32 +101,24 @@ def check_date((start, end), date):
     else:
         return False
 
-def get_corrected_date(date, span):
-    '''returns month and year for span months previous to date'''
+def get_corrected_month(date, span):
+    '''returns month and year for span + 1 months previous to date.
+    This return the last *full* month for span 0. So (2013-12-31, 0)
+    will return 11, 2013. This returns correctly for now() as it does 
+    not assume the month is over. '''
+    span += 1
     if date.month - span <= 0:
         return date.month - span + 12, date.year - 1
     else:
         return date.month - span, date.year
 
 
-def get_last_month(date):
-    '''returns the start and end of a full month as 
-    datetime.date objects'''
-    month, year = get_corrected_date(date, 1)
+def get_monthrange(month, year):
+    '''returns the start and end of a month as datetime.date objects'''
     daterange = calendar.monthrange(year, month)
     start = datetime.date(year, month, 1)
     end = datetime.date(year, month, daterange[1])
     return start, end
-
-def get_previous_months(date):
-    '''returns the start dates for the previous two months as strings'''
-    dates = []
-    for i in [2,3]:
-        month, year = get_corrected_date(date, i)
-        dates.append("%s-%s-%s" %(year, month, '01'))
-    return dates[0], dates[1]
-
-
 
 def calculate_averages(wlist):
     '''return averages for list'''
@@ -227,6 +228,19 @@ def gen_data(rtobject, (start, end)):
     glist = generate_completion_list(rtobject, (start,end)) 
     average, adjusted_average  = calculate_averages(glist)
     return average, adjusted_average
+
+
+def date_averages(db, (start, end)):
+    '''Given a db and   date range(defined by two datetiem.date obects)
+    return results: (start, (average, adjusted_average)) and update
+    db if necessary'''
+    averages = db.get(str(start))
+    if not averages:
+        average, adjusted_average = gen_data(start, end)
+        averages = (average, adjusted_average)
+        db.set(str(start), averages)
+    return (str(start), averages)
+
 
 def generate_email_body(data, typeof):
     title = "Completion Time %sly Report\n" %(typeof.capitalize())
