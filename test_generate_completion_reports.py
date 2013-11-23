@@ -125,29 +125,34 @@ class MyTests(unittest.TestCase):
         self.assertEquals(result, [1])
 
 
-    def test_get_corrected_date_1(self):
+    def test_get_corrected_month_1(self):
         expected = (12, 2012)
         date = datetime.date(2013,01,01)
-        month, year = get_corrected_date(date, 1)
+        month, year = get_corrected_month(date, 0)
         self.assertEquals(expected, (month, year))
     
-    def test_get_corrected_date_2(self):
+    def test_get_corrected_month_2(self):
         expected = (11, 2012)
         date = datetime.date(2013,01,01)
-        month, year = get_corrected_date(date, 2)
+        month, year = get_corrected_month(date,1)
         self.assertEquals(expected, (month, year))
 
-    def test_get_last_month(self):
+    def test_get_monthrange(self):
         date = datetime.date(2013,01,01)
         expected_start = datetime.date(2012,12,01)
         expected_end= datetime.date(2012,12,31)
-        (start, end) = get_last_month(date)
-        self.assertEqual((start, end),(expected_start, expected_end))
+        month, year = get_corrected_month(date, 0)
+        (start, end) = get_monthrange(month, year)
+        self.assertEquals((start, end),(expected_start, expected_end))
 
-    def test_get_previous_months(self):
-        date = datetime.date(2013,01,01)
-        (expected1, expected2) = get_previous_months(date)
-        self.assertEquals((expected1, expected2) , ('2012-11-01', '2012-10-01'))
+    def test_date_averages(self):
+        # doesn't test if results are generated
+        start = datetime.date(2013,11,01)
+        end = datetime.date(2013,11,30)
+        expected = ('2013-11-01', (2.5, 2))
+        results = date_averages(self.db, (start, end))
+        self.assertEquals(expected, results)
+
 
 if __name__ == "__main__":
     unittest.main()
