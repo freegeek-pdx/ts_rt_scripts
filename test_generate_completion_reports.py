@@ -153,6 +153,22 @@ class MyTests(unittest.TestCase):
         results = date_averages(self.db, (start, end))
         self.assertEquals(expected, results)
 
+    def test_get_corrected_week0(self):
+        expected = (datetime.date(2013,11,10), datetime.date(2013,11,16))
+        date =  datetime.date(2013,11,20)
+        start, end = get_corrected_week(date, 0)
+        self.assertEquals(expected, (start, end))
 
+    def test_get_corrected_week1(self):
+        expected = (datetime.date(2013,10,27), datetime.date(2013,11,2))
+        date =  datetime.date(2013,11,13)
+        start, end = get_corrected_week(date, 1)
+        self.assertEquals(expected, (start, end))
+
+    def test_get_corrected_week_sunday(self):
+        expected = (datetime.date(2013,11,10), datetime.date(2013,11,16))
+        date =  datetime.date(2013,11,17)
+        start, end = get_corrected_week(date, 0)
+        self.assertEquals(expected, (start, end))
 if __name__ == "__main__":
     unittest.main()
