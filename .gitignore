@@ -2,3 +2,5 @@ request_tracker.p*
 *.pyc
 *.swp
 rt.cfg
+nt.log
+
