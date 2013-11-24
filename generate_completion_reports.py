@@ -33,50 +33,6 @@ def setup_rtobject():
     return rtobject
 
 
-'''
-
-def main():
-    loadconfig()
-    rtobject = setup_rtobject()  
-    date = datetime.date.today()
-
-    if monthly:
-        db = jsondb.JsonDB(MONTHLYDB)
-        try:
-            daterange = daterange
-        except NameError:
-            daterange = 3
-        data = []
-        for i in range(daterange):
-            month, year = get_corrected_month(date, i)
-            start, end = get__monthrange(month, year)
-            results = date_averages(db, (start, end))
-            data.append(results)
-        db.dump()
-        msg = generate_email_body(data,'month')
-        for address in EMAIL:
-            send_email(address, msg)
-    elif weekly:
-        db = jsondb.JsonDB(WEEKLYDB)
-        try:
-            daterange = daterange
-        except NameError:
-            daterange = 3
-        data = []
-        for i in range(daterange):
-            start, end = get_corrected_week(date, i)
-            results = date_averages(db, (start, end))
-            data.append(results)
-        db.dump()
-        msg = generate_email_body(data,'week')
-        for address in EMAIL:
-            send_email(address, msg)
-
-        end = get_week_end(now) #WRITE THIS
-        start = days_ago(end, 7)
-
-
-'''
 class LocalError(Exception):
     pass
 
@@ -143,9 +99,6 @@ def get_calculated_averages(date, db):
     else:
         return averages[0], averages[1]
 
-
-class TicketChecker:
-    pass
 
 def get_creation_time(rtobject, ticket):
     '''returns creation time as datetime object'''
@@ -266,6 +219,48 @@ def generate_email_body(data, typeof):
         avg, adj_avg = datum[1]
         msg += "%s\t\t%s\t%s\n" %(date, avg, adj_avg)
     return msg
+
+
+def main():
+    loadconfig()
+    rtobject = setup_rtobject()  
+    date = datetime.date.today()
+
+    if monthly:
+        db = jsondb.JsonDB(MONTHLYDB)
+        try:
+            daterange = daterange
+        except NameError:
+            daterange = 3
+        data = []
+        for i in range(daterange):
+            month, year = get_corrected_month(date, i)
+            start, end = get__monthrange(month, year)
+            results = date_averages(db, (start, end))
+            data.append(results)
+        db.dump()
+        msg = generate_email_body(data,'month')
+        for address in EMAIL:
+            send_email(address, msg)
+    elif weekly:
+        db = jsondb.JsonDB(WEEKLYDB)
+        try:
+            daterange = daterange
+        except NameError:
+            daterange = 3
+        data = []
+        for i in range(daterange):
+            start, end = get_corrected_week(date, i)
+            results = date_averages(db, (start, end))
+            data.append(results)
+        db.dump()
+        msg = generate_email_body(data,'week')
+        for address in EMAIL:
+            send_email(address, msg)
+
+        end = get_week_end(now) #WRITE THIS
+        start = days_ago(end, 7)
+
 
 
 
