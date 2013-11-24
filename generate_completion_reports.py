@@ -64,7 +64,7 @@ def main():
             daterange = 3
         data = []
         for i in range(daterange):
-            start, end = get_corrected_week(date, i) # TODO
+            start, end = get_corrected_week(date, i)
             results = date_averages(db, (start, end))
             data.append(results)
         db.dump()
@@ -101,6 +101,15 @@ def check_date((start, end), date):
     else:
         return False
 
+def get_corrected_week(date, weekno):
+    '''returns datetime.date object representing the Sunday at the
+    beginning of the last full week'''
+    correction = (weekno * 7) + 7  +( date.isoweekday() % 7)
+    # if its sunday we want the previous sunday
+    start =  date - datetime.timedelta(correction)
+    end = start + datetime.timedelta(6)
+    return start, end
+
 def get_corrected_month(date, span):
     '''returns month and year for span + 1 months previous to date.
     This return the last *full* month for span 0. So (2013-12-31, 0)
@@ -133,6 +142,10 @@ def get_calculated_averages(date, db):
         raise LocalError('incorrect date, could not get averages')
     else:
         return averages[0], averages[1]
+
+
+class TicketChecker:
+    pass
 
 def get_creation_time(rtobject, ticket):
     '''returns creation time as datetime object'''
