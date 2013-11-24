@@ -1,0 +1,68 @@
+======================================================================
+ERROR: test_check_tickets (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 124, in test_check_tickets
+    result = check_tickets(self.rt, tickets, (start, end))
+NameError: global name 'check_tickets' is not defined
+
+======================================================================
+ERROR: test_date_averages (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 153, in test_date_averages
+    results = date_averages(self.db, (start, end))
+NameError: global name 'date_averages' is not defined
+
+======================================================================
+ERROR: test_get_completion_time (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 98, in test_get_completion_time
+    history = get_history(self.rt, self.ticket)
+NameError: global name 'get_history' is not defined
+
+======================================================================
+ERROR: test_get_completion_time_reopened (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 104, in test_get_completion_time_reopened
+    history = get_history(self.rt, self.ticket_reopened)
+NameError: global name 'get_history' is not defined
+
+======================================================================
+ERROR: test_get_creation_time (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 84, in test_get_creation_time
+    result = get_creation_time(self.rt, self.ticket)
+NameError: global name 'get_creation_time' is not defined
+
+======================================================================
+ERROR: test_get_days_to_complete (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 109, in test_get_days_to_complete
+    creation_time =  get_creation_time(self.rt, self.ticket)
+NameError: global name 'get_creation_time' is not defined
+
+======================================================================
+ERROR: test_get_history (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 88, in test_get_history
+    history = get_history(self.rt, self.ticket)
+NameError: global name 'get_history' is not defined
+
+======================================================================
+ERROR: test_ticket_check (ts_rt_scripts.test_generate_completion_reports.MyTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/paulm/code/ts_rt_scripts/test_generate_completion_reports.py", line 117, in test_ticket_check
+    (completion_time, days) = ticket_check(self.rt, self.ticket)
+NameError: global name 'ticket_check' is not defined
+
+----------------------------------------------------------------------
+Ran 22 tests in 2.669s
+
+FAILED (errors=8)
