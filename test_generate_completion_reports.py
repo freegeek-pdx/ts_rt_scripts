@@ -3,6 +3,9 @@ import unittest
 import os
 from generate_completion_reports import *
 
+loadconfig()
+
+
 class MyTests(unittest.TestCase):
         # pylint: disable=R0904
 
@@ -12,11 +15,12 @@ class MyTests(unittest.TestCase):
         self.db.set('2013-10-25', (2.5, 2))
         self.db.set('2013-10-18', (2.5, 2))
         self.db.set('2013-10-04', (2.5, 2))
-        loadconfig()
+        rt_user, rt_password, rt_queue = loadconfig()
         # override value from loadconfig so unit test tickets
         # won't effect our final output
-        RT_QUEUE=['bugs']
-        self.rt = setup_rtobject()
+        rt_queue = 'Bugs'
+        self.rt = setup_rtobject(RT_URL, rt_user, rt_password)
+        self.tc = TicketChecker(self.rt, rt_queue)
         self.ticket = '38576'
         self.ticket_reopened =  '38618'
 
@@ -81,47 +85,47 @@ class MyTests(unittest.TestCase):
 
     def test_get_creation_time(self):
         expected_time =  datetime.datetime.strptime("Sat Nov 16 17:55:11 2013", "%c" )
-        result = get_creation_time(self.rt, self.ticket)
+        result = self.tc._get_creation_time(self.ticket)
         self.assertEquals(result, expected_time)
 
     def test_get_history(self):
-        history = get_history(self.rt, self.ticket)
+        history = self.tc._get_history(self.ticket)
         # use nosetests -s and uncomment the following 
         # to see what history looks like
         #for item in history:
         #    print item
         length = len(history)
-        self.assertEquals(5, length)
+        self.assertEquals(7, length)
 
     def test_get_completion_time(self):
         expected_time =  datetime.datetime.strptime("2013-11-17 01:55:46", "%Y-%m-%d %H:%M:%S")
-        history = get_history(self.rt, self.ticket)
+        history = self.tc._get_history(self.ticket)
         result = get_completion_time(history)
         self.assertEquals(result, expected_time)
 
     def test_get_completion_time_reopened(self):
         expected_time =  datetime.datetime.strptime("2013-11-21 21:50:34", "%Y-%m-%d %H:%M:%S")
-        history = get_history(self.rt, self.ticket_reopened)
+        history = self.tc._get_history(self.ticket_reopened)
         result = get_completion_time(history)
         self.assertEquals(result, expected_time)
 
     def test_get_days_to_complete(self):
-        creation_time =  get_creation_time(self.rt, self.ticket)
-        history = get_history(self.rt, self.ticket)
+        creation_time =  self.tc._get_creation_time(self.ticket)
+        history = self.tc._get_history(self.ticket)
         completion_time = get_completion_time(history)
         result = get_days_to_complete(creation_time, completion_time)
         self.assertEquals(result, 1)
 
     def test_ticket_check(self):
         expect_completion_time =  datetime.datetime.strptime("2013-11-17 01:55:46", "%Y-%m-%d %H:%M:%S")
-        (completion_time, days) = ticket_check(self.rt, self.ticket)
+        (completion_time, days) = self.tc._ticket_check(self.ticket)
         self.assertEquals((expect_completion_time, 1), (completion_time, days))
 
     def test_check_tickets(self):
         tickets = [self.ticket]
         start = datetime.date(2013, 11, 10)
         end = datetime.date(2013, 11, 17)
-        result = check_tickets(self.rt, tickets, (start, end))
+        result = self.tc._check_tickets(tickets, (start, end))
         self.assertEquals(result, [1])
 
 
@@ -145,13 +149,23 @@ class MyTests(unittest.TestCase):
         (start, end) = get_monthrange(month, year)
         self.assertEquals((start, end),(expected_start, expected_end))
 
-    def test_date_averages(self):
-        # doesn't test if results are generated
+    def test_get_db_averages(self):
         start = datetime.date(2013,11,01)
-        end = datetime.date(2013,11,30)
-        expected = ('2013-11-01', (2.5, 2))
-        results = date_averages(self.db, (start, end))
+        expected = (2.5, 2)
+        results = get_db_averages(self.db, (start))
         self.assertEquals(expected, results)
+
+    def test_get_ticket_list(self):
+        start = datetime.date(2013, 11, 20)
+        end = datetime.date(2013, 11, 27)
+        results = self.tc._get_ticket_list('pending', (start, end))
+        self.assertEquals(len(results), 2)
+ 
+    def test_gen_data(self):
+        pass
+
+    def test_TicketChecker_get_averages(self):
+        pass
 
     def test_get_corrected_week0(self):
         expected = (datetime.date(2013,11,10), datetime.date(2013,11,16))
@@ -167,7 +181,7 @@ class MyTests(unittest.TestCase):
 
     def test_get_corrected_week_sunday(self):
         expected = (datetime.date(2013,11,10), datetime.date(2013,11,16))
-        date =  datetime.date(2013,11,17)
+        date =  datetime.date(2013, 11,17)
         start, end = get_corrected_week(date, 0)
         self.assertEquals(expected, (start, end))
 if __name__ == "__main__":
