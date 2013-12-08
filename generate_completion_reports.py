@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+'''Generate reports on completion times of Tech Support Tickets
+based on the time they hit contacy/pending etc'''
 from __future__ import absolute_import, print_function, unicode_literals
 import datetime
 import calendar
-import  jsondb
-from request_tracker import RT, RT_URL, send_email, load_config, get_id_list
+import jsondb
+from request_tracker import RT, RT_URL, send_email, load_config #, get_id_list
 
 # CONFIG
 EMAIL = ['paulm@freegeek.org']
@@ -14,35 +16,117 @@ def loadconfig():
     '''load config into global variables to make setting up rt object easy'''
     config = load_config('/etc/rt.cfg')
     rtconf = config['rt']
-    mail = config['mail']
-    global RT_HOST, RT_USER, RT_PASSWORD, RT_QUEUE, RT_FROM, RT_TO, MAILHOST, tickets
-    tickets = config['tickets']
-    RT_HOST = 'todo.freegeek.org'
-    RT_USER = rtconf['rt_user']
-    RT_PASSWORD = rtconf['rt_password']
-    RT_QUEUE = rtconf['rt_queue']
-    RT_FROM = mail['rt_from']
-    RT_TO= mail['rt_to']
-    MAILHOST = mail['mail_host']
+    rt_user = rtconf['rt_user']
+    rt_password = rtconf['rt_password']
+    rt_queue = rtconf['rt_queue']
+    return rt_user, rt_password, rt_queue
 
-
-def setup_rtobject():
+def setup_rtobject(rt_url, rt_user, rt_password):
     '''set up rt object'''
-    rtobject = RT(RT_URL, RT_USER, RT_PASSWORD)
+    rtobject = RT(rt_url, rt_user, rt_password)
     rtobject.login()
     return rtobject
 
 
 class LocalError(Exception):
+    '''could do with a better name '''
     pass
 
-def avg_list(list):
-    '''returns the average of a list of numbers'''
-    return round(float(sum(list)) / len(list), 1)
+class TicketChecker:
+    def __init__(self, rtobject, rtqueue):
+        self.rtobject = rtobject
+        self.rtqueue = rtqueue
+        self.initialized = False
+        self.ticket_data = []
 
-def adjusted_avg_list(list):
+        # Public Method
+    def get_averages(self, start, end):    # was gen_data
+        if not self.initialized:
+            self._gen_data(start, end)              # was get_completion_list
+            self.initialized = True
+        valid_tickets = self._check_tickets(self.ticket_list, (start, end))
+        average, adjusted_average  = calculate_averages(valid_tickets)
+        return average, adjusted_average
+
+        # Private Methods
+    def _get_creation_time(self, ticket):
+        '''returns creation time as datetime object'''
+        ctime = datetime.datetime.strptime(
+                            self.rtobject.get_creation_date(ticket), '%c')
+        return ctime
+
+    def _get_history(self, ticket):
+        '''returns ticket history as list'''
+        history = self.rtobject.get_history(ticket)
+        return history
+
+
+    def _ticket_check(self, ticket):
+        '''for a given ticket return the time it was completed
+        i.e. finally moved to contact etc. and the time in days it took
+        returns datetime object, integer'''
+        creation = self._get_creation_time(ticket)
+        history = self._get_history(ticket)
+        completion = get_completion_time(history)
+        days_to_complete = get_days_to_complete(creation, completion)
+        return completion, days_to_complete
+
+    def _get_ticket_list(self, status, (start, end)):
+        '''returns a list of tickets matching status
+        between start and today (as datetime.date objects)'''
+        return self.rtobject.updated_by_status_daterange(self.rtqueue, status, start, end)
+
+    def _check_tickets(self, tickets,  (start, end)):
+        '''return list of times to complete between start and end'''
+        results = []
+        for ticket in tickets:
+            # if status change was within time period add to results
+            completion_time, days_to_complete = self._ticket_check(ticket)
+            if check_date((start, end), completion_time.date()):
+                results.append(days_to_complete)
+        return results
+ 
+    def _gen_data(self, start, end):
+        '''generate dict of completed tickets, doesn't
+        check tickets for validity, _check tickets is used for this'''
+        # not unit tested as covered by other tests #FIXME
+        completed = []
+        status_list = ['contact', 'pending', 'resolved']
+        for status in status_list:
+            ticket_list = self._get_ticket_list( status, (start, end))
+            completed.extend(ticket_list)
+        for ticket in completed:
+            completion_time, days_to_complete = self._ticket_check(ticket)
+            self.ticket_data[ticket] = (completion_time, days_to_complete)
+
+def get_completion_time(history):
+    '''returns a datetime object indication when a ticket was moved
+    to contact or pending'''
+    completed = False
+    # check for changed status in each entry in a tickets history
+    for entry in history:
+        # checks to see if a ticket has been reopened
+        if entry['NewValue'] == 'open' and completed is True:
+            completed = False
+        # set the completion date and status
+        elif entry['NewValue'] == 'contact' and completed is False:
+            datestr = entry['Created']
+            completed = True
+        elif entry['NewValue'] == 'pending' and completed is False:
+            datestr = entry['Created']
+            completed = True
+        elif entry['NewValue'] == 'resolved'and completed is False:
+            datestr = entry['Created']
+            completed = True
+    return datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+ 
+def avg_list(alist):
+    '''returns the average of a list of numbers'''
+    return round(float(sum(alist)) / len(alist), 1)
+
+def adjusted_avg_list(alist):
     '''returns the average of a list of numbers ignoring the highest number'''
-    return  round((float(sum(list)) - max(list)) / (len(list) - 1), 1)  
+    return  round((float(sum(alist)) - max(alist)) / (len(alist) - 1), 1)  
 
 
 def days_ago(date, days):
@@ -88,7 +172,7 @@ def get_monthrange(month, year):
 def calculate_averages(wlist):
     '''return averages for list'''
     average = avg_list(wlist)
-    adjusted_average=adjusted_avg_list(wlist)
+    adjusted_average = adjusted_avg_list(wlist)
     return average, adjusted_average
 
 def get_calculated_averages(date, db):
@@ -99,131 +183,35 @@ def get_calculated_averages(date, db):
     else:
         return averages[0], averages[1]
 
-
-def get_creation_time(rtobject, ticket):
-    '''returns creation time as datetime object'''
-    ctime = datetime.datetime.strptime(rtobject.get_creation_date(ticket), '%c')
-    return ctime
-
-def get_history(rtobject, ticket):
-    '''returns ticket history as list'''
-    history = rtobject.get_history(ticket)
-    return history
-
-def get_completion_time(history):
-    '''returns a datetime object indication when a ticket was moved
-    to contact or pending'''
-    completed = False
-    # check for changed status in each entry in a tickets history
-    for entry in history:
-        # checks to see if a ticket has been reopened
-        if entry['NewValue'] == 'open' and completed is True:
-            completed = False
-        # set the completion date and status
-        elif entry['NewValue'] == 'contact' and completed is False:
-            datestr = entry['Created']
-            completed = True
-        elif  entry['NewValue'] == 'pending' and completed is False:
-            datestr = entry['Created']
-            completed = True
-        elif  entry['NewValue'] == 'resolved'and completed is False:
-            datestr = entry['Created']
-            completed = True
-    return  datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
-
 def get_days_to_complete(creation_date, completion_date):
     '''returns the difference in days 
     between creation_date and completion_date'''
     timedelta =  completion_date.date() - creation_date.date()
     return timedelta.days
 
-def ticket_check(rt, ticket):
-    '''for a given ticket return the time it was completed 
-    i.e. finally moved to contact etc. and the time in days it took
-    returns datetime object, integer'''
-    creation_time = get_creation_time(rt, ticket)
-    history = get_history(rt, ticket)
-    completion_time= get_completion_time(history)
-    days_to_complete =  get_days_to_complete(creation_time, completion_time)
-    return completion_time, days_to_complete
-
-
-def check_tickets(rtobject, ticket_list, (start, end)):
-    results = []
-    for ticket in ticket_list:
-        completion_time, days_to_complete = ticket_check(rtobject, ticket)
-        # if status change was within time period add to results
-        if check_date((start, end), completion_time.date()):
-            results.append(days_to_complete)
-    return results
-
-def get_ticket_list(rtobject, status, (start, end)):
-    '''reurns a list of tickets matching status
-    between start and today (as datetime.date objects)'''
-    # not unit tested as unpredictable due to following. 
-    # last_updated_by_status from request_tracker only takes a number of 
-    # days before today, not a date range, so we set end to be today.
-    # Since we check the date range elsewhere it won't have any side effects
-    # other than possibly making the list a little larger than necesary
-    # it most cases end will equal today anyway. Taking (start, end) 
-    # as argument  means this can be fixed later without side effects.
-    end = datetime.date.today()
-    days = (end - start).days 
-    return rtobject.last_updated_by_status(RT_QUEUE, status, days)
-
-
-def generate_completion_list(rtobject,(start, end)):
-    '''generate a list of how long it took to complete tickets, doesn't
-    check tickets for validity, use check tickets for this''' 
-    # not unit tested as covered by other tests
-    completed=[]
-    status_list = ['contact', 'pending', 'resolved']
-    for status in status_list:
-        ticket_list = get_ticket_list(rtobject, status, (start, end))
-        completed.extend(ticket_list)
-    return completed
-
-
-def gen_data(rtobject, (start, end)):
-    '''given a date range return the average and adjusted average
-    completion times for tickets'''
-    # not unit tested as covered by other tests
-    ticket_list = generate_completion_list(rtobject, (start,end))
-    # we check tickets here so we can avoid hitting the API
-    #  via generate_completion_list (& get_ticket_list) multiple times
-    valid_tickets = check_tickets(rtobject, ticket_list, (start, end))
-    average, adjusted_average  = calculate_averages(valid_tickets)
-    return average, adjusted_average
-
-
-def date_averages(db, (start, end)):
-    '''Given a db and   date range(defined by two datetiem.date obects)
-    return results: (start, (average, adjusted_average)) and update
-    db if necessary'''
-    averages = db.get(str(start))
-    if not averages:
-        average, adjusted_average = gen_data(start, end)
-        averages = (average, adjusted_average)
-        db.set(str(start), averages)
-    return (str(start), averages)
+def get_db_averages(db, date):
+    '''return averages from db if present, else none when given
+    datetime object'''
+    averages = db.get(str(date))
+    return averages
 
 
 def generate_email_body(data, typeof):
-    title = "Completion Time %sly Report\n" %(typeof.capitalize())
+    '''Generate the bofy of a message'''
+    title = "Completion Time %sly Report\n" % (typeof.capitalize())
     msg = title
-    for i in len(title):
-        msg += '='
-    msg += "\n\n%s starting\tAverage\tAdjusted Average\n" %(typeof.capitalize())
+    msg += '=' * len(title)
+    msg += "\n\n%s starting\tAverage\tAdjusted Average\n" % (typeof.capitalize())
     for datum in data:
-        date=datum[0]
+        date = datum[0]
         avg, adj_avg = datum[1]
-        msg += "%s\t\t%s\t%s\n" %(date, avg, adj_avg)
+        msg += "%s\t\t%s\t%s\n" % (date, avg, adj_avg)
     return msg
 
 
 def main():
-    loadconfig()
-    rtobject = setup_rtobject()  
+    rt_user, rt_password, rt_queue = loadconfig()
+    rtobject = setup_rtobject(RT_URL, rt_user, rt_password) 
     date = datetime.date.today()
 
     if monthly:
@@ -232,11 +220,15 @@ def main():
             daterange = daterange
         except NameError:
             daterange = 3
+        # TODO start = 
+        # TODO end = 
         data = []
+        tc = TicketChecker(rtobject, rt_queue)
         for i in range(daterange):
-            month, year = get_corrected_month(date, i)
-            start, end = get__monthrange(month, year)
-            results = date_averages(db, (start, end))
+            get_db_averages(db, start)
+            if not averages:
+                average, adjusted_average = tc.get_averages(start, end)
+                db.set(str(start), (average, adjusted_average))
             data.append(results)
         db.dump()
         msg = generate_email_body(data,'month')
@@ -249,19 +241,14 @@ def main():
         except NameError:
             daterange = 3
         data = []
+        tc = TicketChecker(rtobject, rt_queue)
         for i in range(daterange):
-            start, end = get_corrected_week(date, i)
-            results = date_averages(db, (start, end))
+            get_db_averages(db, start)
+            if not averages:
+                average, adjusted_average = tc.get_averages(start, end)
+                db.set(str(start), (average, adjusted_average))
             data.append(results)
         db.dump()
-        msg = generate_email_body(data,'week')
-        for address in EMAIL:
-            send_email(address, msg)
-
-        end = get_week_end(now) #WRITE THIS
-        start = days_ago(end, 7)
-
-
 
 
 if __name__ == "__main__":
