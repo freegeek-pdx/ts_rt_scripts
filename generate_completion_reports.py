@@ -37,12 +37,12 @@ class TicketChecker:
         self.rtobject = rtobject
         self.rtqueue = rtqueue
         self.initialized = False
-        self.ticket_data = []
+        # self.ticket_data = []
 
         # Public Method
     def get_averages(self, start, end):    # was gen_data
         if not self.initialized:
-            self._gen_data(start, end)              # was get_completion_list
+            self.ticket_data = self._gen_data(start, end)              # was get_completion_list
             self.initialized = True
         valid_tickets = self._check_tickets(self.ticket_list, (start, end))
         average, adjusted_average  = calculate_averages(valid_tickets)
@@ -51,29 +51,32 @@ class TicketChecker:
         # Private Methods
     def _get_creation_time(self, ticket):
         '''returns creation time as datetime object'''
-        ctime = datetime.datetime.strptime(
-                            self.rtobject.get_creation_date(ticket), '%c')
-        return ctime
+        return datetime.datetime.strptime(ticket['Created'], '%c')
 
     def _get_history(self, ticket):
         '''returns ticket history as list'''
         history = self.rtobject.get_history(ticket)
         return history
 
+    def _get_ticketid(self, ticket):
+        '''for a set of ticket results return the ticket id'''
+        return ticket['id'].split('/')[1]
 
     def _ticket_check(self, ticket):
         '''for a given ticket return the time it was completed
         i.e. finally moved to contact etc. and the time in days it took
         returns datetime object, integer'''
         creation = self._get_creation_time(ticket)
-        history = self._get_history(ticket)
+        ticket_no = self._get_ticketid(ticket)
+        history = self._get_history(ticket_no)
         completion = get_completion_time(history)
         days_to_complete = get_days_to_complete(creation, completion)
         return completion, days_to_complete
 
     def _get_ticket_list(self, status, (start, end)):
         '''returns a list of tickets matching status
-        between start and today (as datetime.date objects)'''
+        between start and today (as datetime.date objects).
+        Contains all ticket properties'''
         return self.rtobject.updated_by_status_daterange(self.rtqueue, status, start, end)
 
     def _check_tickets(self, tickets,  (start, end)):
@@ -89,15 +92,18 @@ class TicketChecker:
     def _gen_data(self, start, end):
         '''generate dict of completed tickets, doesn't
         check tickets for validity, _check tickets is used for this'''
-        # not unit tested as covered by other tests #FIXME
         completed = []
         status_list = ['contact', 'pending', 'resolved']
         for status in status_list:
             ticket_list = self._get_ticket_list( status, (start, end))
             completed.extend(ticket_list)
+        ticket_data = {}
         for ticket in completed:
+            ticket_no = self._get_ticketid(ticket)
             completion_time, days_to_complete = self._ticket_check(ticket)
-            self.ticket_data[ticket] = (completion_time, days_to_complete)
+            ticket_data[ticket_no] = (completion_time, days_to_complete)
+        return ticket_data
+
 
 def get_completion_time(history):
     '''returns a datetime object indication when a ticket was moved
