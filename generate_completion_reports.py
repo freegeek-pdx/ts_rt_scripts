@@ -28,7 +28,7 @@ def setup_rtobject(rt_url, rt_user, rt_password):
     return rtobject
 
 
-class ReportGenreatorError(Exception):
+class ReportGeneratorError(Exception):
     '''Custom exception type '''
     pass
 
