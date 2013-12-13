@@ -23,6 +23,8 @@ class MyTests(unittest.TestCase):
         self.tc = TicketChecker(self.rt, rt_queue)
         self.ticket = '38576'
         self.ticket_reopened =  '38618'
+        self.ticket_result = {u'': u'', u'id': u'ticket/38576', u'Told': u'Not set', u'Status': u'pending', 'Requestors': [u'paulm@freegeek.org'], u'FinalPriority': u'100', u'Resolved': u'Not set', u'CF.{Bug Status}': u'', u'Created': u'Sat Nov 16 17:55:11 2013'}
+
 
     def tearDown(self):
         os.remove('null')     
@@ -85,7 +87,7 @@ class MyTests(unittest.TestCase):
 
     def test_get_creation_time(self):
         expected_time =  datetime.datetime.strptime("Sat Nov 16 17:55:11 2013", "%c" )
-        result = self.tc._get_creation_time(self.ticket)
+        result = self.tc._get_creation_time(self.ticket_result)
         self.assertEquals(result, expected_time)
 
     def test_get_history(self):
@@ -110,19 +112,23 @@ class MyTests(unittest.TestCase):
         self.assertEquals(result, expected_time)
 
     def test_get_days_to_complete(self):
-        creation_time =  self.tc._get_creation_time(self.ticket)
+        creation_time =  self.tc._get_creation_time(self.ticket_result)
         history = self.tc._get_history(self.ticket)
         completion_time = get_completion_time(history)
         result = get_days_to_complete(creation_time, completion_time)
         self.assertEquals(result, 1)
 
+    def test_get_ticket_id(self):
+        result  = self.tc._get_ticketid(self.ticket_result)
+        self.assertEquals(result, '38576')
+
     def test_ticket_check(self):
         expect_completion_time =  datetime.datetime.strptime("2013-11-17 01:55:46", "%Y-%m-%d %H:%M:%S")
-        (completion_time, days) = self.tc._ticket_check(self.ticket)
+        (completion_time, days) = self.tc._ticket_check(self.ticket_result)
         self.assertEquals((expect_completion_time, 1), (completion_time, days))
 
     def test_check_tickets(self):
-        tickets = [self.ticket]
+        tickets = [self.ticket_result]
         start = datetime.date(2013, 11, 10)
         end = datetime.date(2013, 11, 17)
         result = self.tc._check_tickets(tickets, (start, end))
@@ -162,7 +168,10 @@ class MyTests(unittest.TestCase):
         self.assertEquals(len(results), 2)
  
     def test_gen_data(self):
-        pass
+        start = datetime.date(2013, 11, 20)
+        end = datetime.date(2013, 11, 27)
+        results = self.tc._gen_data(start, end)
+        self.assertEquals(len(results), 2)
 
     def test_TicketChecker_get_averages(self):
         pass
