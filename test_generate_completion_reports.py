@@ -24,7 +24,7 @@ class MyTests(unittest.TestCase):
         self.ticket = '38576'
         self.ticket_reopened =  '38618'
         self.ticket_result = {u'': u'', u'id': u'ticket/38576', u'Told': u'Not set', u'Status': u'pending', 'Requestors': [u'paulm@freegeek.org'], u'FinalPriority': u'100', u'Resolved': u'Not set', u'CF.{Bug Status}': u'', u'Created': u'Sat Nov 16 17:55:11 2013'}
-
+        self.ticket_list = {u'38576': (datetime.datetime(2013, 11, 17, 1, 55, 46), 1), u'38618': (datetime.datetime(2013, 11, 21, 21, 50, 34), 0)}
 
     def tearDown(self):
         os.remove('null')     
@@ -80,7 +80,6 @@ class MyTests(unittest.TestCase):
         (result1, result2) = get_calculated_averages(date, self.db)
         self.assertEquals((result1, result2), (2.5, 2))
 
-
     def test_get_calculated_averages_fails(self):
         date = datetime.date(2013, 11, 11)
         self.assertRaises(LocalError, get_calculated_averages, date, self.db)
@@ -128,7 +127,7 @@ class MyTests(unittest.TestCase):
         self.assertEquals((expect_completion_time, 1), (completion_time, days))
 
     def test_check_tickets(self):
-        tickets = [self.ticket_result]
+        tickets = self.ticket_list
         start = datetime.date(2013, 11, 10)
         end = datetime.date(2013, 11, 17)
         result = self.tc._check_tickets(tickets, (start, end))
@@ -174,7 +173,10 @@ class MyTests(unittest.TestCase):
         self.assertEquals(len(results), 2)
 
     def test_TicketChecker_get_averages(self):
-        pass
+        start = datetime.date(2013, 11, 20)
+        end = datetime.date(2013, 11, 27)
+        result1, result2  = self.tc.get_averages(start, end)
+        self.assertEquals((result1, result2),  (0.0, 0.0))
 
     def test_get_corrected_week0(self):
         expected = (datetime.date(2013,11,10), datetime.date(2013,11,16))
