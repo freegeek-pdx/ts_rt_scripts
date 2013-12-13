@@ -28,23 +28,23 @@ def setup_rtobject(rt_url, rt_user, rt_password):
     return rtobject
 
 
-class LocalError(Exception):
-    '''could do with a better name '''
+class ReportGenreatorError(Exception):
+    '''Custom exception type '''
     pass
 
 class TicketChecker:
     def __init__(self, rtobject, rtqueue):
         self.rtobject = rtobject
         self.rtqueue = rtqueue
-        self.initialized = False
+        #self.initialized = False
         # self.ticket_data = []
 
         # Public Method
-    def get_averages(self, start, end):    # was gen_data
-        if not self.initialized:
-            self.ticket_data = self._gen_data(start, end)              # was get_completion_list
-            self.initialized = True
-        valid_tickets = self._check_tickets(self.ticket_list, (start, end))
+    def get_averages(self, start, end):    
+        #if not self.initialized:
+        ticket_list = self._gen_data(start, end)
+        #    self.initialized = True
+        valid_tickets = self._check_tickets(ticket_list, (start, end))
         average, adjusted_average  = calculate_averages(valid_tickets)
         return average, adjusted_average
 
@@ -82,9 +82,9 @@ class TicketChecker:
     def _check_tickets(self, tickets,  (start, end)):
         '''return list of times to complete between start and end'''
         results = []
-        for ticket in tickets:
+        for times  in tickets.itervalues():
             # if status change was within time period add to results
-            completion_time, days_to_complete = self._ticket_check(ticket)
+            completion_time, days_to_complete = times 
             if check_date((start, end), completion_time.date()):
                 results.append(days_to_complete)
         return results
@@ -131,9 +131,13 @@ def avg_list(alist):
     return round(float(sum(alist)) / len(alist), 1)
 
 def adjusted_avg_list(alist):
-    '''returns the average of a list of numbers ignoring the highest number'''
-    return  round((float(sum(alist)) - max(alist)) / (len(alist) - 1), 1)  
-
+    '''returns the average of a list of numbers ignoring the highest 
+    numberi ( if length of list > one'''
+    if len(alist) > 1:
+        return  round((float(sum(alist)) - max(alist)) 
+                / (len(alist) - 1), 1)  
+    else:
+        return round(float(sum(alist)) / len(alist), 1)
 
 def days_ago(date, days):
     '''returns date n days ago from date,
