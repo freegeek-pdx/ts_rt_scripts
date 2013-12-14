@@ -10,17 +10,27 @@ from request_tracker import RT, RT_URL, send_email, load_config
 
 # CONFIG
 EMAIL = ['paulm@freegeek.org']
-MONTHLDB = 'monthlydb.json'
+MONTHLYDB = 'monthlydb.json'
 WEEKLYDB = 'weeklydb.json'
 
 def loadconfig():
-    '''load config into global variables to make setting up rt object easy'''
+    '''load config into variables to make setting up rt object easy'''
     config = load_config('/etc/rt.cfg')
     rtconf = config['rt']
     rt_user = rtconf['rt_user']
     rt_password = rtconf['rt_password']
     rt_queue = rtconf['rt_queue']
     return rt_user, rt_password, rt_queue
+
+def loadmailconfig():
+    '''load mail config'''
+    config = load_config('/etc/rt.cfg')
+    mailconf = config['mail']
+    host = mailconf['mail_host']
+    sender = mailconf['rt_from']
+    to = mailconf['rt_to']
+    return  host, sender, to
+
 
 def setup_rtobject(rt_url, rt_user, rt_password):
     '''set up rt object'''
@@ -96,13 +106,20 @@ class TicketChecker:
         completed = []
         status_list = ['contact', 'pending', 'resolved']
         for status in status_list:
+            print(status)
+            print(datetime.datetime.now())
             ticket_list = self._get_ticket_list( status, (start, end))
+            print('tickets:' + str(len(ticket_list)))
+            print(datetime.datetime.now())
             completed.extend(ticket_list)
         ticket_data = {}
         for ticket in completed:
             ticket_no = self._get_ticketid(ticket)
             completion_time, days_to_complete = self._ticket_check(ticket)
-            ticket_data[ticket_no] = (completion_time, days_to_complete)
+            if completion_time:
+                ticket_data[ticket_no] = (completion_time, days_to_complete)
+        print('completed')
+        print(datetime.datetime.now())
         return ticket_data
 
 
@@ -125,7 +142,8 @@ def get_completion_time(history):
         elif entry['NewValue'] == 'resolved'and completed is False:
             datestr = entry['Created']
             completed = True
-    return datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
+    if completed:
+        return datetime.datetime.strptime(datestr, "%Y-%m-%d %H:%M:%S")
  
 def avg_list(alist):
     '''returns the average of a list of numbers'''
@@ -154,7 +172,8 @@ def check_date((start, end), date):
 
 def get_corrected_week(date, weekno):
     '''returns datetime.date object representing the Sunday at the
-    beginning of the last full week, N weeks ago'''
+    beginning of the last full week, N weeks ago, 
+    and the corresponding end of week'''
     correction = (weekno * 7) + 7  +( date.isoweekday() % 7)
     # if its sunday we want the previous sunday
     start =  date - datetime.timedelta(correction)
@@ -190,15 +209,16 @@ def get_calculated_averages(date, db):
     '''for a given date return average, adjusted_average from db)'''
     averages = db.get(str(date))
     if not averages:
-        raise LocalError('incorrect date, could not get averages')
+        raise ReportGeneratorError('incorrect date, could not get averages')
     else:
         return averages[0], averages[1]
 
 def get_days_to_complete(creation_date, completion_date):
     '''returns the difference in days 
     between creation_date and completion_date'''
-    timedelta =  completion_date.date() - creation_date.date()
-    return timedelta.days
+    if completion_date:
+        timedelta =  completion_date.date() - creation_date.date()
+        return timedelta.days
 
 def get_db_averages(db, date):
     '''return averages from db if present, else none when given
@@ -208,11 +228,11 @@ def get_db_averages(db, date):
 
 
 def generate_email_body(data, typeof):
-    '''Generate the bofy of a message'''
+    '''Generate the body of a message'''
     title = "Completion Time %sly Report\n" % (typeof.capitalize())
     msg = title
     msg += '=' * len(title)
-    msg += "\n\n%s starting\tAverage\tAdjusted Average\n" % (typeof.capitalize())
+    msg += "\n\n%s starting\t\tAverage\tAdjusted Average\n" % (typeof.capitalize())
     for datum in data:
         date = datum[0]
         avg, adj_avg = datum[1]
@@ -235,6 +255,8 @@ def main():
     options = get_options()
     rt_user, rt_password, rt_queue = loadconfig()
     rtobject = setup_rtobject(RT_URL, rt_user, rt_password)
+    if options.mail:
+         host, sender, to = loadmailconfig()
     daterange = options.daterange
     date = datetime.date.today()
 
@@ -242,37 +264,49 @@ def main():
         db = jsondb.JsonDB(MONTHLYDB)
         data = []
         tckr = TicketChecker(rtobject, rt_queue)
-        for i in range(daterange):
+        # reverse order so oldest is first
+        for i in range(daterange -1, -1, -1):
+            print(i)
+            print(datetime.datetime.now())
             month, year = get_corrected_month(date, i)
             start, end = get_monthrange(month, year)
             averages = get_db_averages(db, start)
             if not averages:
-                average, adjusted_average = tckr.get_averages(start, end)
-                db.set(str(start), (average, adjusted_average))
+                print(str(i) + 'start gen')
+                print(datetime.datetime.now())
+                averages = tckr.get_averages(start, end)
+                print(str(i) + 'end gen')
+                print(datetime.datetime.now())
+                print(start, averages)
+                db.set(str(start), averages)
             data.append((start, averages))
         db.dumpdb()
         msg = generate_email_body(data,'month')
         if options.mail:
+            subject = 'Monthly Completion Time Report ' + str(start)
             for address in EMAIL:
-                send_email(address, msg)
+                send_email(host, sender, address, subject, msg)
         else:
             print(msg)
     elif options.report == "weekly":
         db = jsondb.JsonDB(WEEKLYDB)
         data = []
         tckr = TicketChecker(rtobject, rt_queue)
-        for i in range(daterange):
+        # reverse order so oldest is first
+        for i in range(daterange -1, -1, -1):
             start, end = get_corrected_week(date, i)
             averages = get_db_averages(db, start)
             if not averages:
-                average, adjusted_average = tckr.get_averages(start, end)
-                db.set(str(start), (average, adjusted_average))
+                averages = tckr.get_averages(start, end)
+                print(averages)
+                db.set(str(start), averages)
             data.append((start, averages))
         db.dumpdb()
         msg = generate_email_body(data,'week')
         if options.mail:
+            subject = 'Weekly Completion Time Report ' + str(start)
             for address in EMAIL:
-                send_email(address, msg)
+                send_email(host, sender, address, subject, msg)
         else:
             print(msg)
 
