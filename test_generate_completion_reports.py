@@ -82,7 +82,8 @@ class MyTests(unittest.TestCase):
 
     def test_get_calculated_averages_fails(self):
         date = datetime.date(2013, 11, 11)
-        self.assertRaises(LocalError, get_calculated_averages, date, self.db)
+        self.assertRaises(ReportGeneratorError, get_calculated_averages, 
+                date, self.db)
 
     def test_get_creation_time(self):
         expected_time =  datetime.datetime.strptime("Sat Nov 16 17:55:11 2013", "%c" )
@@ -117,6 +118,13 @@ class MyTests(unittest.TestCase):
         result = get_days_to_complete(creation_time, completion_time)
         self.assertEquals(result, 1)
 
+    def test_get_days_to_complete_is_none(self):
+        creation_time =  self.tc._get_creation_time(self.ticket_result)
+        history = self.tc._get_history(self.ticket)
+        completion_time = None
+        result = get_days_to_complete(creation_time, completion_time)
+        self.assertEquals(result, None)
+    
     def test_get_ticket_id(self):
         result  = self.tc._get_ticketid(self.ticket_result)
         self.assertEquals(result, '38576')
