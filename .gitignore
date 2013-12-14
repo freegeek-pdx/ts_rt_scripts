@@ -3,4 +3,4 @@ request_tracker.p*
 *.swp
 rt.cfg
 nt.log
-
+*.json
