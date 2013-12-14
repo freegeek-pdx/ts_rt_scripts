@@ -193,8 +193,8 @@ class MyTests(unittest.TestCase):
         self.assertEquals(expected, (start, end))
 
     def test_get_corrected_week1(self):
-        expected = (datetime.date(2013,10,27), datetime.date(2013,11,2))
-        date =  datetime.date(2013,11,13)
+        expected = (datetime.date(2013,11,3), datetime.date(2013,11,9))
+        date =  datetime.date(2013,11,20)
         start, end = get_corrected_week(date, 1)
         self.assertEquals(expected, (start, end))
 
