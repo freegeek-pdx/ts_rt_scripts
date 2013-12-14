@@ -1,11 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bn/env python
 '''Generate reports on completion times of Tech Support Tickets
 based on the time they hit contacy/pending etc'''
 from __future__ import absolute_import, print_function, unicode_literals
 import datetime
 import calendar
+import argparse
 import jsondb
-from request_tracker import RT, RT_URL, send_email, load_config #, get_id_list
+from request_tracker import RT, RT_URL, send_email, load_config
 
 # CONFIG
 EMAIL = ['paulm@freegeek.org']
@@ -153,7 +154,7 @@ def check_date((start, end), date):
 
 def get_corrected_week(date, weekno):
     '''returns datetime.date object representing the Sunday at the
-    beginning of the last full week'''
+    beginning of the last full week, N weeks ago'''
     correction = (weekno * 7) + 7  +( date.isoweekday() % 7)
     # if its sunday we want the previous sunday
     start =  date - datetime.timedelta(correction)
@@ -218,48 +219,63 @@ def generate_email_body(data, typeof):
         msg += "%s\t\t%s\t%s\n" % (date, avg, adj_avg)
     return msg
 
+def get_options():
+    parser = argparse.ArgumentParser(description = 
+        "Generate completion time reports for tech support tickets")
+    parser.add_argument("report", help="type of report", 
+            choices = ["monthly", "weekly"])
+    parser.add_argument("-d", "--daterange", type=int, default=3,
+            help = "Generate reports for N months/weeks, Defaults to 3")
+    parser.add_argument("-m", "--mail", help="Send report by email",
+            action="store_true")
+    args = parser.parse_args()
+    return args
 
 def main():
+    options = get_options()
     rt_user, rt_password, rt_queue = loadconfig()
-    rtobject = setup_rtobject(RT_URL, rt_user, rt_password) 
+    rtobject = setup_rtobject(RT_URL, rt_user, rt_password)
+    daterange = options.daterange
     date = datetime.date.today()
 
-    if monthly:
+    if options.report  == "monthly":
         db = jsondb.JsonDB(MONTHLYDB)
-        try:
-            daterange = daterange
-        except NameError:
-            daterange = 3
-        # TODO start = 
-        # TODO end = 
         data = []
-        tc = TicketChecker(rtobject, rt_queue)
+        tckr = TicketChecker(rtobject, rt_queue)
         for i in range(daterange):
-            get_db_averages(db, start)
+            month, year = get_corrected_month(date, i)
+            start, end = get_monthrange(month, year)
+            averages = get_db_averages(db, start)
             if not averages:
-                average, adjusted_average = tc.get_averages(start, end)
+                average, adjusted_average = tckr.get_averages(start, end)
                 db.set(str(start), (average, adjusted_average))
-            data.append(results)
-        db.dump()
+            data.append((start, averages))
+        db.dumpdb()
         msg = generate_email_body(data,'month')
-        for address in EMAIL:
-            send_email(address, msg)
-    elif weekly:
+        if options.mail:
+            for address in EMAIL:
+                send_email(address, msg)
+        else:
+            print(msg)
+    elif options.report == "weekly":
         db = jsondb.JsonDB(WEEKLYDB)
-        try:
-            daterange = daterange
-        except NameError:
-            daterange = 3
         data = []
-        tc = TicketChecker(rtobject, rt_queue)
+        tckr = TicketChecker(rtobject, rt_queue)
         for i in range(daterange):
-            get_db_averages(db, start)
+            start, end = get_corrected_week(date, i)
+            averages = get_db_averages(db, start)
             if not averages:
-                average, adjusted_average = tc.get_averages(start, end)
+                average, adjusted_average = tckr.get_averages(start, end)
                 db.set(str(start), (average, adjusted_average))
-            data.append(results)
-        db.dump()
+            data.append((start, averages))
+        db.dumpdb()
+        msg = generate_email_body(data,'week')
+        if options.mail:
+            for address in EMAIL:
+                send_email(address, msg)
+        else:
+            print(msg)
 
 
 if __name__ == "__main__":
-    pass
+    main()
