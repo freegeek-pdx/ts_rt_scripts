@@ -106,11 +106,8 @@ class TicketChecker:
         completed = []
         status_list = ['contact', 'pending', 'resolved']
         for status in status_list:
-            print(status)
-            print(datetime.datetime.now())
             ticket_list = self._get_ticket_list( status, (start, end))
-            print('tickets:' + str(len(ticket_list)))
-            print(datetime.datetime.now())
+            
             completed.extend(ticket_list)
         ticket_data = {}
         for ticket in completed:
@@ -118,8 +115,6 @@ class TicketChecker:
             completion_time, days_to_complete = self._ticket_check(ticket)
             if completion_time:
                 ticket_data[ticket_no] = (completion_time, days_to_complete)
-        print('completed')
-        print(datetime.datetime.now())
         return ticket_data
 
 
@@ -266,18 +261,11 @@ def main():
         tckr = TicketChecker(rtobject, rt_queue)
         # reverse order so oldest is first
         for i in range(daterange -1, -1, -1):
-            print(i)
-            print(datetime.datetime.now())
             month, year = get_corrected_month(date, i)
             start, end = get_monthrange(month, year)
             averages = get_db_averages(db, start)
             if not averages:
-                print(str(i) + 'start gen')
-                print(datetime.datetime.now())
                 averages = tckr.get_averages(start, end)
-                print(str(i) + 'end gen')
-                print(datetime.datetime.now())
-                print(start, averages)
                 db.set(str(start), averages)
             data.append((start, averages))
         db.dumpdb()
@@ -298,7 +286,6 @@ def main():
             averages = get_db_averages(db, start)
             if not averages:
                 averages = tckr.get_averages(start, end)
-                print(averages)
                 db.set(str(start), averages)
             data.append((start, averages))
         db.dumpdb()
