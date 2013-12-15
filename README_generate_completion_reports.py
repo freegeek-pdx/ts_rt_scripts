@@ -11,3 +11,6 @@ configure EMAIL, WEEKLYDB, MONTHLYDB on installed copy
 
 use in cronjob with -m flag set 
 
+there is an (untested) fabfile.cfg that can be used with fabfile.py to eas inastall
+
+requires python-fabric
