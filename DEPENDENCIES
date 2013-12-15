@@ -1,3 +1,4 @@
+Python 2.7
 Depends on the following python modules
 External:
 python-rt, which depends on python-requests
