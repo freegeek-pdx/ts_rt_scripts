@@ -1,0 +1,5 @@
+There is an (untested) fabfile.cfg that can be used with fabfile.py to ease i
+install of these scripts. You will still need to do some setup by hand, including cronjobs. Install from this directory.
+
+Requires python-fabric
+
