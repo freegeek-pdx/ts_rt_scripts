@@ -271,7 +271,7 @@ def main():
         db.dumpdb()
         msg = generate_email_body(data,'month')
         if options.mail:
-            subject = 'Monthly Completion Time Report ' + str(start)
+            subject = 'Monthly Completion Time Report ' + str(date)
             for address in EMAIL:
                 send_email(host, sender, address, subject, msg)
         else:
@@ -291,7 +291,7 @@ def main():
         db.dumpdb()
         msg = generate_email_body(data,'week')
         if options.mail:
-            subject = 'Weekly Completion Time Report ' + str(start)
+            subject = 'Weekly Completion Time Report ' + str(date)
             for address in EMAIL:
                 send_email(host, sender, address, subject, msg)
         else:
